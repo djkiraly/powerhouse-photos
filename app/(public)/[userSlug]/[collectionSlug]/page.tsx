@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import { Play } from 'lucide-react';
+import { Footer } from '@/components/Footer';
 
 type PageProps = {
   params: Promise<{ userSlug: string; collectionSlug: string }>;
@@ -62,7 +63,7 @@ export default async function SharedCollectionPage({ params, searchParams }: Pag
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -124,14 +125,7 @@ export default async function SharedCollectionPage({ params, searchParams }: Pag
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t bg-white mt-auto">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs text-gray-400">
-            Shared via Powerhouse Photos
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

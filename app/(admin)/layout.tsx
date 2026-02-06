@@ -17,6 +17,7 @@ import {
   UsersRound,
   ClipboardList,
 } from "lucide-react";
+import { Footer } from "@/components/Footer";
 
 async function handleSignOut() {
   "use server";
@@ -52,7 +53,7 @@ export default async function AdminLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Top Bar */}
       <header className="bg-gray-900 text-white sticky top-0 z-50">
         <div className="px-4 sm:px-6 lg:px-8">
@@ -93,7 +94,7 @@ export default async function AdminLayout({
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex flex-1">
         {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-4rem)] sticky top-16">
           <nav className="p-4 space-y-1">
@@ -123,6 +124,8 @@ export default async function AdminLayout({
         {/* Main Content */}
         <main className="flex-1 p-8">{children}</main>
       </div>
+
+      <Footer />
     </div>
   );
 }
