@@ -325,6 +325,7 @@ export function PhotoPreview({ photo, onClose, onDelete, onTagsChange, isAdmin =
           ) : availablePlayers.length > 0 ? (
             <div className="flex items-center gap-2">
               <Select
+                key={`player-${photo.id}`}
                 onValueChange={handleAddTag}
                 disabled={addingTag}
               >
@@ -391,6 +392,7 @@ export function PhotoPreview({ photo, onClose, onDelete, onTagsChange, isAdmin =
           ) : availableTeams.length > 0 ? (
             <div className="flex items-center gap-2">
               <Select
+                key={`team-${photo.id}`}
                 onValueChange={handleAddTeamTag}
                 disabled={addingTeamTag}
               >
