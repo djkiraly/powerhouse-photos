@@ -339,15 +339,20 @@ export function AuditLogViewer() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {log.userName || "Unknown"}
+                            {log.userName || (log.details as Record<string, unknown>)?.email as string || "Unknown"}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {log.userRole === "admin" ? (
-                              <span className="text-blue-600">Admin</span>
-                            ) : (
-                              <span>Player</span>
-                            )}
-                          </div>
+                          {log.userName && log.userRole && (
+                            <div className="text-xs text-gray-500">
+                              {log.userRole === "admin" ? (
+                                <span className="text-blue-600">Admin</span>
+                              ) : (
+                                <span>Player</span>
+                              )}
+                            </div>
+                          )}
+                          {!log.userName && (log.action === "USER_LOGIN_FAILED") && (
+                            <div className="text-xs text-red-500">Unknown account</div>
+                          )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
@@ -375,6 +380,11 @@ export function AuditLogViewer() {
                           <div className="text-xs text-gray-500 font-mono">
                             {log.ipAddress || "-"}
                           </div>
+                          {log.userAgent && (
+                            <div className="text-xs text-gray-400 max-w-[200px] truncate" title={log.userAgent}>
+                              {formatUserAgent(log.userAgent)}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
@@ -428,4 +438,13 @@ function formatDetails(details: Record<string, unknown>): string {
     }
   }
   return parts.join(", ") || JSON.stringify(details);
+}
+
+function formatUserAgent(ua: string): string {
+  if (ua.includes("Chrome") && !ua.includes("Edg")) return "Chrome";
+  if (ua.includes("Edg")) return "Edge";
+  if (ua.includes("Firefox")) return "Firefox";
+  if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+  if (ua.includes("Mobile")) return "Mobile Browser";
+  return ua.substring(0, 30);
 }
