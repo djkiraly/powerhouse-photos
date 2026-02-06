@@ -15,16 +15,35 @@ This guide covers deploying PowerhousePhotos to a production server with:
 
 ## Quick Start
 
-### 1. Initial Server Setup
+### Option A: Interactive Deployment Script (Recommended)
 
-SSH into your server and run the setup script:
+The `production-deploy.sh` script provides an interactive menu covering all deployment
+steps — prerequisites, app deployment, Nginx configuration, SSL certificates, and
+validation. It can be run for fresh installs or ongoing updates.
 
 ```bash
 # Clone repository
 git clone https://github.com/YOUR_REPO/powerhouse-photos.git /var/www/powerhouse-photos
 cd /var/www/powerhouse-photos
 
-# Run setup (installs Node.js 22, Nginx, Certbot, PM2, obtains SSL cert)
+# Full deployment (interactive menu)
+sudo bash deploy/production-deploy.sh
+
+# Or run all steps non-interactively
+sudo bash deploy/production-deploy.sh full
+```
+
+Individual steps can also be selected from the menu (e.g. "just update the app" or
+"just renew the SSL certificate").
+
+### Option B: Setup + Deploy Scripts (Separate)
+
+```bash
+# Clone repository
+git clone https://github.com/YOUR_REPO/powerhouse-photos.git /var/www/powerhouse-photos
+cd /var/www/powerhouse-photos
+
+# First-time server setup (installs Node.js 22, Nginx, Certbot, PM2, obtains SSL cert)
 sudo bash deploy/setup.sh yourdomain.com your@email.com
 ```
 

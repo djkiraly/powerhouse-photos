@@ -20,7 +20,8 @@
       "Bash(dir:*)",
       "Bash(npm run db:migrate:*)",
       "Bash(find:*)",
-      "Bash(\"D:/Projects/PowerhousePhotos/app/\\(app\\)/collections/[id]/page.tsx\" << 'PAGEEOF'\nimport { CollectionDetailView } from \"@/components/collections/CollectionDetailView\";\n\ntype PageProps = {\n  params: Promise<{ id: string }>;\n};\n\nexport default async function CollectionDetailPage\\({ params }: PageProps\\) {\n  const { id } = await params;\n  return <CollectionDetailView collectionId={id} />;\n}\nPAGEEOF)"
+      "Bash(\"D:/Projects/PowerhousePhotos/app/\\(app\\)/collections/[id]/page.tsx\" << 'PAGEEOF'\nimport { CollectionDetailView } from \"@/components/collections/CollectionDetailView\";\n\ntype PageProps = {\n  params: Promise<{ id: string }>;\n};\n\nexport default async function CollectionDetailPage\\({ params }: PageProps\\) {\n  const { id } = await params;\n  return <CollectionDetailView collectionId={id} />;\n}\nPAGEEOF)",
+      "Bash(bash:*)"
     ]
   }
 }

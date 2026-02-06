@@ -8,8 +8,8 @@ module.exports = {
       script: 'node_modules/next/dist/bin/next',
       args: 'start -H 0.0.0.0',
       cwd: './',
-      instances: 'max', // Use all available CPU cores
-      exec_mode: 'cluster', // Enable cluster mode for load balancing
+      instances: 1,
+      exec_mode: 'fork',
       env: {
         NODE_ENV: 'development',
         PORT: 3000,
