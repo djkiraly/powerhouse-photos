@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Shield,
+  HelpCircle,
 } from "lucide-react";
 
 async function handleSignOut() {
@@ -63,6 +64,13 @@ export default async function AppLayout({
                 >
                   <FolderOpen className="w-4 h-4" />
                   <span>Collections</span>
+                </Link>
+                <Link
+                  href="/how-to-use"
+                  className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Help</span>
                 </Link>
                 {session.user.role === 'admin' && (
                   <Link

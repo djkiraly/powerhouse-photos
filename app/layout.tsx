@@ -7,6 +7,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Powerhouse Photos",
   description: "Photo sharing application for the team",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
