@@ -142,14 +142,14 @@ export function PlayerForm({ player, onClose }: PlayerFormProps) {
             <div className="space-y-2">
               <Label htmlFor="team">Team</Label>
               <Select
-                value={teamId}
-                onValueChange={setTeamId}
+                value={teamId || "none"}
+                onValueChange={(val) => setTeamId(val === "none" ? "" : val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a team..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Team</SelectItem>
+                  <SelectItem value="none">No Team</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
