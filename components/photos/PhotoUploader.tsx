@@ -104,7 +104,17 @@ export function PhotoUploader() {
       'image/*': ['.jpg', '.jpeg', '.png', '.heic', '.webp'],
       'video/*': ['.mp4', '.mov'],
     },
-    maxSize: 100 * 1024 * 1024, // 100MB (videos up to 100MB, photos validated per-file)
+    validator: (file) => {
+      const isVideo = file.type.startsWith('video/');
+      const maxSize = isVideo ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
+      if (file.size > maxSize) {
+        return {
+          code: 'file-too-large',
+          message: `File is too large (max ${isVideo ? '100MB' : '25MB'})`,
+        };
+      }
+      return null;
+    },
   });
 
   const generateVideoThumbnail = async (file: File): Promise<Blob | null> => {
