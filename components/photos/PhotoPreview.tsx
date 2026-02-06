@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
-import { Download, Trash2, X, User, Calendar, FileImage, Users, Loader2 } from "lucide-react";
+import { Download, Trash2, X, User, Calendar, FileImage, Users, Loader2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -77,6 +77,7 @@ export function PhotoPreview({ photo, onClose, onDelete, onTagsChange, isAdmin =
   const [removingTeamTagId, setRemovingTeamTagId] = useState<string | null>(null);
   const [currentTags, setCurrentTags] = useState<PhotoTag[]>(photo.tags);
   const [currentTeamTags, setCurrentTeamTags] = useState<PhotoTeamTag[]>(photo.teamTags || []);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const fullImageUrl = `${GCS_BUCKET_URL}/${photo.gcsPath}`;
 
@@ -85,6 +86,16 @@ export function PhotoPreview({ photo, onClose, onDelete, onTagsChange, isAdmin =
     setCurrentTags(photo.tags);
     setCurrentTeamTags(photo.teamTags || []);
   }, [photo.tags, photo.teamTags]);
+
+  // Close lightbox on Escape
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxOpen(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [lightboxOpen]);
 
   // Fetch players on mount
   useEffect(() => {
@@ -266,7 +277,10 @@ export function PhotoPreview({ photo, onClose, onDelete, onTagsChange, isAdmin =
       </div>
 
       {/* Image / Video */}
-      <div className="flex-1 relative bg-gray-100 min-h-[300px]">
+      <div
+        className="flex-1 relative bg-gray-100 min-h-[300px] cursor-pointer group/media"
+        onClick={() => !imageError && setLightboxOpen(true)}
+      >
         {imageError ? (
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-gray-500">Failed to load media</span>
@@ -277,19 +291,68 @@ export function PhotoPreview({ photo, onClose, onDelete, onTagsChange, isAdmin =
             controls
             className="w-full h-full object-contain"
             preload="metadata"
+            onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <Image
-            src={fullImageUrl}
-            alt={photo.originalName}
-            fill
-            className="object-contain"
-            sizes="(max-width: 1024px) 100vw, 400px"
-            onError={() => setImageError(true)}
-            priority
-          />
+          <>
+            <Image
+              src={fullImageUrl}
+              alt={photo.originalName}
+              fill
+              className="object-contain"
+              sizes="(max-width: 1024px) 100vw, 400px"
+              onError={() => setImageError(true)}
+              priority
+            />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/media:opacity-100 transition-opacity bg-black/10">
+              <div className="bg-black/60 rounded-full p-2">
+                <Maximize2 className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </>
         )}
       </div>
+
+      {/* Lightbox */}
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <Button
+            size="icon"
+            variant="ghost"
+            className="absolute top-4 right-4 text-white hover:bg-white/20 z-10"
+            onClick={() => setLightboxOpen(false)}
+          >
+            <X className="w-6 h-6" />
+          </Button>
+          <div
+            className="relative w-full h-full flex items-center justify-center p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {photo.mimeType?.startsWith('video/') ? (
+              <video
+                src={fullImageUrl}
+                controls
+                autoPlay
+                className="max-w-full max-h-full object-contain"
+                preload="metadata"
+              />
+            ) : (
+              <Image
+                src={fullImageUrl}
+                alt={photo.originalName}
+                fill
+                className="object-contain"
+                sizes="100vw"
+                priority
+                onClick={() => setLightboxOpen(false)}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Metadata */}
       <div className="p-4 space-y-4 border-t border-gray-200">
