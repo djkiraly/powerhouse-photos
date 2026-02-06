@@ -96,19 +96,29 @@ export async function GET(request: NextRequest) {
       ? { AND: whereConditions }
       : {};
 
-    const photos = await prisma.photo.findMany({
-      where,
-      include: {
-        folder: true,
-        tags: {
-          include: { player: true },
+    // Pagination
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '100', 10) || 100));
+    const skip = (page - 1) * limit;
+
+    const [photos, total] = await Promise.all([
+      prisma.photo.findMany({
+        where,
+        include: {
+          folder: true,
+          tags: {
+            include: { player: true },
+          },
+          teamTags: {
+            include: { team: true },
+          },
         },
-        teamTags: {
-          include: { team: true },
-        },
-      },
-      orderBy: { uploadedAt: 'desc' },
-    });
+        orderBy: { uploadedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.photo.count({ where }),
+    ]);
 
     // Fetch uploader data from auth database
     const uploaderIds = [...new Set(photos.map(p => p.uploadedById))];
@@ -119,7 +129,12 @@ export async function GET(request: NextRequest) {
       uploader: uploaders.get(photo.uploadedById) || null,
     }));
 
-    return NextResponse.json(photosWithUploaders);
+    return NextResponse.json({
+      photos: photosWithUploaders,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error('Error fetching photos:', error);
     return NextResponse.json(

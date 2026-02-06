@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { PhotoCard } from "./PhotoCard";
 import { PhotoPreview } from "./PhotoPreview";
 import { Button } from "@/components/ui/button";
-import { Download, FolderPlus } from "lucide-react";
+import { Download, FolderPlus, ChevronLeft, ChevronRight } from "lucide-react";
 import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
 
 type Photo = {
@@ -41,6 +41,8 @@ type PhotoGridProps = {
   endDate?: string;
 };
 
+const PHOTOS_PER_PAGE = 100;
+
 export function PhotoGrid({ isAdmin = false, folderId, playerIds = [], teamIds = [], startDate, endDate }: PhotoGridProps) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,15 +50,25 @@ export function PhotoGrid({ isAdmin = false, folderId, playerIds = [], teamIds =
   const [selectionMode, setSelectionMode] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<Photo | null>(null);
   const [showAddToCollection, setShowAddToCollection] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [folderId, playerIds, teamIds, startDate, endDate]);
 
   useEffect(() => {
     fetchPhotos();
-  }, [folderId, playerIds, teamIds, startDate, endDate]);
+  }, [folderId, playerIds, teamIds, startDate, endDate, page]);
 
   const fetchPhotos = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('limit', String(PHOTOS_PER_PAGE));
       if (folderId) {
         params.set('folderId', folderId);
       }
@@ -72,11 +84,12 @@ export function PhotoGrid({ isAdmin = false, folderId, playerIds = [], teamIds =
       if (endDate) {
         params.set('endDate', endDate);
       }
-      const url = params.toString() ? `/api/photos?${params}` : '/api/photos';
-      const response = await fetch(url);
+      const response = await fetch(`/api/photos?${params}`);
       if (response.ok) {
         const data = await response.json();
-        setPhotos(data);
+        setPhotos(data.photos);
+        setTotalPages(data.totalPages);
+        setTotal(data.total);
       }
     } catch (error) {
       console.error('Error fetching photos:', error);
@@ -208,6 +221,38 @@ export function PhotoGrid({ isAdmin = false, folderId, playerIds = [], teamIds =
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {(page - 1) * PHOTOS_PER_PAGE + 1}–{Math.min(page * PHOTOS_PER_PAGE, total)} of {total}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p - 1)}
+              disabled={page <= 1}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Previous
+            </Button>
+            <span className="text-sm text-gray-700 px-2">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p + 1)}
+              disabled={page >= totalPages}
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {showAddToCollection && (
         <AddToCollectionDialog
