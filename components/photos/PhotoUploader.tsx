@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, X, Check, Folder, ChevronRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,26 @@ export function PhotoUploader() {
     setSelectedFolderName(folderName);
   };
 
+  const MAX_CONCURRENT = 3;
+  const activeUploads = useRef(0);
+  const uploadQueue = useRef<UploadFile[]>([]);
+
+  const processQueue = () => {
+    while (activeUploads.current < MAX_CONCURRENT && uploadQueue.current.length > 0) {
+      const next = uploadQueue.current.shift()!;
+      activeUploads.current++;
+      handleUpload(next).finally(() => {
+        activeUploads.current--;
+        processQueue();
+      });
+    }
+  };
+
+  const enqueueUploads = (uploadFiles: UploadFile[]) => {
+    uploadQueue.current.push(...uploadFiles);
+    processQueue();
+  };
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!selectedFolderId) {
       return; // Don't allow uploads without a folder selected
@@ -93,9 +113,7 @@ export function PhotoUploader() {
     }));
 
     setFiles(prev => [...prev, ...newFiles]);
-
-    // Start uploading
-    newFiles.forEach(uploadFile => handleUpload(uploadFile));
+    enqueueUploads(newFiles);
   }, [selectedFolderId]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
