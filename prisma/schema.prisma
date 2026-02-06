@@ -1,0 +1,160 @@
+// Photo Application Database Schema
+// This database is separate from the auth database and contains all photo-specific data
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note: No User model here - users exist in separate auth database
+// We only store the user ID (UUID string) for relationships
+
+model Player {
+  id            String   @id @default(cuid())
+  name          String
+  jerseyNumber  Int?
+  position      String?
+  teamId        String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  team          Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  photoTags     PhotoTag[]
+
+  @@index([name])
+  @@index([teamId])
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  players     Player[]
+  photoTags   PhotoTeamTag[]
+
+  @@index([name])
+}
+
+model Folder {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  parentId    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  parent      Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Folder[] @relation("FolderHierarchy")
+  photos      Photo[]
+
+  @@index([parentId])
+  @@index([name])
+}
+
+model Photo {
+  id            String   @id @default(cuid())
+  gcsPath       String   // Full GCS path
+  thumbnailPath String?  // Thumbnail GCS path
+  originalName  String
+  fileSize      Int      // bytes
+  mimeType      String
+  uploadedById  String   // UUID string - references users.id in auth DB
+  folderId      String?
+  uploadedAt    DateTime @default(now())
+
+  // Relations
+  folder        Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  tags          PhotoTag[]
+  teamTags      PhotoTeamTag[]
+  collectionPhotos CollectionPhoto[]
+
+  @@index([uploadedById])
+  @@index([uploadedAt])
+  @@index([folderId])
+}
+
+model PhotoTag {
+  id        String @id @default(cuid())
+  photoId   String
+  playerId  String
+
+  photo     Photo  @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  player    Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([photoId, playerId])
+  @@index([playerId])
+}
+
+model PhotoTeamTag {
+  id       String @id @default(cuid())
+  photoId  String
+  teamId   String
+
+  photo    Photo  @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  team     Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([photoId, teamId])
+  @@index([teamId])
+}
+
+model Collection {
+  id               String    @id @default(cuid())
+  name             String
+  description      String?
+  userId           String    // UUID string - references users.id in auth DB
+  slug             String?
+  userSlug         String?
+  shareToken       String?   @unique
+  shareExpiresAt   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  photos      CollectionPhoto[]
+
+  @@index([userId])
+}
+
+model CollectionPhoto {
+  id           String @id @default(cuid())
+  collectionId String
+  photoId      String
+  addedAt      DateTime @default(now())
+
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  photo        Photo      @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, photoId])
+  @@index([photoId])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  action       String   // PHOTO_UPLOAD, PHOTO_DELETE, PLAYER_TAG_CREATE, USER_LOGIN, etc.
+  userId       String   // UUID from auth DB
+  userName     String?  // Denormalized for display
+  userRole     String?  // admin/player at time of action
+  resourceType String   // Photo, PhotoTag, PhotoTeamTag, Collection, User
+  resourceId   String?  // ID of affected resource
+  resourceIds  String[] // For bulk operations
+  details      Json?    // Additional context
+  ipAddress    String?  // Client IP
+  userAgent    String?  // Browser info
+  createdAt    DateTime @default(now())
+
+  @@index([action])
+  @@index([userId])
+  @@index([resourceType])
+  @@index([createdAt])
+}

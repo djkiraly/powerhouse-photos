@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run lint)",
+      "Bash(npx next lint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run build:*)",
+      "Bash(del /f \"D:\\\\Projects\\\\PowerhousePhotos\\\\prisma\\\\prisma.config.ts\")",
+      "Bash(npm install:*)",
+      "Bash(npm view:*)",
+      "Bash(npm ls:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run db:generate:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run db:push:*)",
+      "WebSearch",
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(npm run db:migrate:*)",
+      "Bash(find:*)",
+      "Bash(\"D:/Projects/PowerhousePhotos/app/\\(app\\)/collections/[id]/page.tsx\" << 'PAGEEOF'\nimport { CollectionDetailView } from \"@/components/collections/CollectionDetailView\";\n\ntype PageProps = {\n  params: Promise<{ id: string }>;\n};\n\nexport default async function CollectionDetailPage\\({ params }: PageProps\\) {\n  const { id } = await params;\n  return <CollectionDetailView collectionId={id} />;\n}\nPAGEEOF)"
+    ]
+  }
+}

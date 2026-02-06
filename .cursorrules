@@ -1,0 +1,182 @@
+# Powerhouse Photos - Cursor Rules
+
+## Project Context
+This is a Next.js 16 photo sharing application with dual database architecture (Drizzle for auth, Prisma for photos) and Google Cloud Storage integration.
+
+## Code Style
+
+### TypeScript
+- Use strict TypeScript - no `any` types
+- Define interfaces for all data structures
+- Use type inference where appropriate
+- Prefer `type` for unions, `interface` for objects
+
+### React/Next.js
+- Use Server Components by default
+- Add "use client" only when needed
+- Prefer async/await over promises
+- Use App Router patterns consistently
+
+### Database
+- Use Drizzle for auth DB queries (read-only)
+- Use Prisma for photo DB operations
+- Always use helper functions in `lib/users.ts` for user data
+- Never try to join across databases
+
+### API Routes
+- Validate input parameters
+- Check authentication/authorization
+- Use proper HTTP status codes
+- Handle errors gracefully
+- Return consistent JSON responses
+
+### Component Structure
+- Keep components focused and single-purpose
+- Extract reusable logic to hooks
+- Use server components for data fetching
+- Client components only for interactivity
+
+### File Organization
+```
+app/          # Pages and API routes
+components/   # Reusable components
+lib/          # Utilities and configurations
+prisma/       # Database schema
+```
+
+## Common Patterns
+
+### Fetching Photos with User Data
+```typescript
+// 1. Get photos from photo DB
+const photos = await prisma.photo.findMany();
+
+// 2. Extract user IDs
+const userIds = [...new Set(photos.map(p => p.uploadedById))];
+
+// 3. Fetch user data from auth DB (with caching)
+const users = await getCachedUsers(userIds);
+
+// 4. Combine data
+const photosWithUsers = photos.map(p => ({
+  ...p,
+  uploader: users.get(p.uploadedById)
+}));
+```
+
+### Protected API Route
+```typescript
+const session = await auth();
+if (!session?.user) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+```
+
+### Admin-Only Check
+```typescript
+if (session.user.role !== 'admin') {
+  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+}
+```
+
+## Important Notes
+
+### Database Constraints
+- User IDs are UUID strings, not foreign keys
+- Cannot use Prisma relations for users
+- Must fetch user data separately
+- Use caching to reduce cross-database queries
+
+### GCS Operations
+- Use signed URLs for uploads/downloads
+- Set appropriate expiration times
+- Validate file types and sizes
+- Generate thumbnails server-side
+
+### Authentication
+- NextAuth.js v5 with JWT strategy
+- Sessions persist across requests
+- Middleware protects all app routes
+- Auth database is shared with another app
+
+### Performance
+- Cache user data (5-minute TTL)
+- Generate thumbnails for gallery
+- Use direct browser-to-GCS uploads
+- Index frequently queried fields
+
+## Commands Reference
+
+```bash
+# Development
+npm run dev              # Start dev server
+npm run build           # Build production
+npm run lint            # Check linting
+
+# Database
+npm run db:generate     # Generate Prisma client
+npm run db:migrate      # Run migrations
+npm run db:studio       # Open Prisma Studio
+
+# Prisma Commands
+npx prisma migrate dev  # Create migration
+npx prisma generate     # Generate client
+npx prisma studio       # Open GUI
+npx prisma db push      # Push schema changes
+```
+
+## Error Handling
+
+### API Routes
+```typescript
+try {
+  // Operation
+  return NextResponse.json(data);
+} catch (error) {
+  console.error('Operation failed:', error);
+  return NextResponse.json(
+    { error: 'Operation failed' },
+    { status: 500 }
+  );
+}
+```
+
+### Client Components
+```typescript
+try {
+  // API call
+} catch (error) {
+  console.error('Error:', error);
+  // Show user-friendly error message
+}
+```
+
+## Security Checklist
+
+- [ ] Validate all user inputs
+- [ ] Check authentication on API routes
+- [ ] Verify permissions before operations
+- [ ] Use signed URLs with expiration
+- [ ] Never expose credentials
+- [ ] Sanitize database queries (ORM handles this)
+- [ ] Validate file types and sizes
+
+## Testing Strategy
+
+When testing:
+1. Test with real database connections
+2. Verify both databases are accessible
+3. Check GCS credentials are valid
+4. Test both admin and player roles
+5. Verify file uploads work end-to-end
+6. Check permission boundaries
+
+## Deployment Notes
+
+Before deploying:
+- Set all environment variables
+- Run database migrations
+- Test GCS connectivity
+- Verify NextAuth configuration
+- Check CORS settings
+- Test in production-like environment
