@@ -49,9 +49,25 @@ export function isValidImageType(mimeType: string): boolean {
 }
 
 /**
- * Validate file size (max 25MB)
+ * Validate video file type
  */
-export function isValidFileSize(bytes: number): boolean {
-  const maxSize = 25 * 1024 * 1024; // 25MB
+export function isValidVideoType(mimeType: string): boolean {
+  const validTypes = ['video/mp4', 'video/quicktime'];
+  return validTypes.includes(mimeType.toLowerCase());
+}
+
+/**
+ * Validate media file type (image or video)
+ */
+export function isValidMediaType(mimeType: string): boolean {
+  return isValidImageType(mimeType) || isValidVideoType(mimeType);
+}
+
+/**
+ * Validate file size (photos max 25MB, videos max 100MB)
+ */
+export function isValidFileSize(bytes: number, mimeType?: string): boolean {
+  const isVideo = mimeType ? isValidVideoType(mimeType) : false;
+  const maxSize = isVideo ? 100 * 1024 * 1024 : 25 * 1024 * 1024;
   return bytes <= maxSize;
 }

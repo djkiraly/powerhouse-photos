@@ -6,7 +6,7 @@ import { Upload, X, Check, Folder, ChevronRight, AlertCircle } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { formatFileSize, isValidImageType, isValidFileSize } from "@/lib/utils";
+import { formatFileSize, isValidMediaType, isValidVideoType, isValidFileSize } from "@/lib/utils";
 
 type UploadFile = {
   file: File;
@@ -101,22 +101,53 @@ export function PhotoUploader() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpg', '.jpeg', '.png', '.heic', '.webp']
+      'image/*': ['.jpg', '.jpeg', '.png', '.heic', '.webp'],
+      'video/*': ['.mp4', '.mov'],
     },
-    maxSize: 25 * 1024 * 1024, // 25MB
+    maxSize: 100 * 1024 * 1024, // 100MB (videos up to 100MB, photos validated per-file)
   });
+
+  const generateVideoThumbnail = async (file: File): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      video.onloadeddata = () => {
+        video.currentTime = 1;
+      };
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.min(video.videoWidth, 800);
+        canvas.height = Math.round(canvas.width * (video.videoHeight / video.videoWidth));
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          resolve(blob);
+        }, 'image/jpeg', 0.8);
+      };
+      video.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+    });
+  };
 
   const handleUpload = async (uploadFile: UploadFile) => {
     const { file, id } = uploadFile;
+    const isVideo = isValidVideoType(file.type);
 
     // Validate
-    if (!isValidImageType(file.type)) {
+    if (!isValidMediaType(file.type)) {
       updateFileStatus(id, 'error', 0, 'Invalid file type');
       return;
     }
 
-    if (!isValidFileSize(file.size)) {
-      updateFileStatus(id, 'error', 0, 'File too large (max 25MB)');
+    if (!isValidFileSize(file.size, file.type)) {
+      updateFileStatus(id, 'error', 0, `File too large (max ${isVideo ? '100MB' : '25MB'})`);
       return;
     }
 
@@ -131,7 +162,7 @@ export function PhotoUploader() {
       });
 
       if (!urlResponse.ok) throw new Error('Failed to get upload URL');
-      
+
       const { signedUrl, gcsPath } = await urlResponse.json();
       updateFileStatus(id, 'uploading', 30);
 
@@ -147,6 +178,34 @@ export function PhotoUploader() {
       if (!uploadResponse.ok) throw new Error('Failed to upload to storage');
       updateFileStatus(id, 'processing', 60);
 
+      // Step 2.5: For videos, generate and upload thumbnail client-side
+      let thumbnailGcsPath: string | undefined;
+      if (isVideo) {
+        const thumbnailBlob = await generateVideoThumbnail(file);
+        if (thumbnailBlob) {
+          const thumbUrlResponse = await fetch('/api/upload/signed-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              originalFilename: file.name.replace(/\.[^.]+$/, '.jpg'),
+              contentType: 'image/jpeg',
+            }),
+          });
+          if (thumbUrlResponse.ok) {
+            const { signedUrl: thumbSignedUrl, gcsPath: thumbGcsPath } = await thumbUrlResponse.json();
+            const thumbUploadResponse = await fetch(thumbSignedUrl, {
+              method: 'PUT',
+              body: thumbnailBlob,
+              headers: { 'Content-Type': 'image/jpeg' },
+            });
+            if (thumbUploadResponse.ok) {
+              thumbnailGcsPath = thumbGcsPath;
+            }
+          }
+        }
+        updateFileStatus(id, 'processing', 80);
+      }
+
       // Step 3: Create photo record
       const photoResponse = await fetch('/api/photos', {
         method: 'POST',
@@ -157,11 +216,12 @@ export function PhotoUploader() {
           fileSize: file.size,
           mimeType: file.type,
           folderId: selectedFolderId,
+          ...(thumbnailGcsPath && { thumbnailGcsPath }),
         }),
       });
 
       if (!photoResponse.ok) throw new Error('Failed to create photo record');
-      
+
       const photo = await photoResponse.json();
       updateFileStatus(id, 'complete', 100, undefined, photo.id);
     } catch (error) {
@@ -324,13 +384,13 @@ export function PhotoUploader() {
               <>
                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm font-medium text-gray-900">
-                  {isDragActive ? 'Drop files here' : 'Drag and drop photos here'}
+                  {isDragActive ? 'Drop files here' : 'Drag and drop photos or videos here'}
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  or click to select files (max 25MB each)
+                  or click to select files (photos max 25MB, videos max 100MB)
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Supports: JPG, PNG, HEIC, WebP
+                  Supports: JPG, PNG, HEIC, WebP, MP4, MOV
                 </p>
               </>
             )}

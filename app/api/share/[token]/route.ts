@@ -66,6 +66,7 @@ export async function GET(
         return {
           id: cp.photo.id,
           originalName: cp.photo.originalName,
+          mimeType: cp.photo.mimeType,
           imageUrl,
           thumbnailUrl,
           tags: cp.photo.tags.map((t) => ({

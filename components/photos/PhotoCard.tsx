@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
-import { Download, Trash2, Check } from "lucide-react";
+import { Download, Trash2, Check, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const GCS_BUCKET_URL = `https://storage.googleapis.com/${process.env.NEXT_PUBLIC_GCS_BUCKET_NAME || 'pph_photos'}`;
@@ -14,6 +14,7 @@ type PhotoCardProps = {
     gcsPath: string;
     thumbnailPath: string | null;
     originalName: string;
+    mimeType?: string;
     uploadedAt: string;
     uploader: {
       name: string;
@@ -97,6 +98,15 @@ export function PhotoCard({ photo, selected, onToggleSelect, onDelete, onPreview
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
             onError={() => setImageError(true)}
           />
+        )}
+
+        {/* Video play icon overlay */}
+        {photo.mimeType?.startsWith('video/') && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center">
+              <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+            </div>
+          </div>
         )}
       </div>
 

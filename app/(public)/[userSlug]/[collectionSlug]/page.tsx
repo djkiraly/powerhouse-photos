@@ -1,6 +1,7 @@
 import { redirect, notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Image from 'next/image';
+import { Play } from 'lucide-react';
 
 type PageProps = {
   params: Promise<{ userSlug: string; collectionSlug: string }>;
@@ -10,6 +11,7 @@ type PageProps = {
 type SharedPhoto = {
   id: string;
   originalName: string;
+  mimeType?: string;
   imageUrl: string;
   thumbnailUrl: string | null;
   tags: Array<{ id: string; name: string; jerseyNumber: number | null }>;
@@ -95,6 +97,13 @@ export default async function SharedCollectionPage({ params, searchParams }: Pag
                     className="object-cover"
                     sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   />
+                  {photo.mimeType?.startsWith('video/') && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center">
+                        <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {photo.tags.length > 0 && (
                   <div className="p-2 flex flex-wrap gap-1">

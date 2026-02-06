@@ -6,7 +6,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getCachedUsers } from '@/lib/user-cache';
 import { uploadToGCS, bucket } from '@/lib/gcs';
-import { isValidImageType, isValidFileSize } from '@/lib/utils';
+import { isValidImageType, isValidVideoType, isValidMediaType, isValidFileSize } from '@/lib/utils';
 import { parseDate } from '@/lib/validation';
 import { logAudit } from '@/lib/audit';
 import sharp from 'sharp';
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
 
-    const { gcsPath, originalName, fileSize, mimeType, folderId } = body;
+    const { gcsPath, originalName, fileSize, mimeType, folderId, thumbnailGcsPath } = body;
 
     if (!gcsPath || !originalName || !fileSize || !mimeType) {
       return NextResponse.json(
@@ -154,13 +154,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!isValidImageType(mimeType)) {
+    if (!isValidMediaType(mimeType)) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
     }
 
     // Validate file size
-    if (!isValidFileSize(fileSize)) {
-      return NextResponse.json({ error: 'File too large (max 25MB)' }, { status: 400 });
+    if (!isValidFileSize(fileSize, mimeType)) {
+      return NextResponse.json({ error: 'File too large' }, { status: 400 });
     }
 
     // Validate gcsPath format (must start with photos/ and no path traversal)
@@ -168,19 +168,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
     }
 
-    // Download image from GCS
-    const [imageBuffer] = await bucket.file(gcsPath).download();
+    // Generate thumbnail
+    let thumbnailPath: string | null = null;
 
-    // Create thumbnail (rotate() auto-rotates based on EXIF orientation)
-    const thumbnail = await sharp(imageBuffer)
-      .rotate() // Auto-rotate based on EXIF orientation
-      .resize(400, 400, { fit: 'inside' })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-
-    // Upload thumbnail to GCS
-    const thumbnailPath = `thumbnails/${gcsPath.split('/').pop()}`;
-    await uploadToGCS(thumbnailPath, thumbnail, 'image/jpeg');
+    if (isValidImageType(mimeType)) {
+      // Image: server-side thumbnail via Sharp
+      const [imageBuffer] = await bucket.file(gcsPath).download();
+      const thumbnail = await sharp(imageBuffer)
+        .rotate()
+        .resize(400, 400, { fit: 'inside' })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      thumbnailPath = `thumbnails/${gcsPath.split('/').pop()}`;
+      await uploadToGCS(thumbnailPath, thumbnail, 'image/jpeg');
+    } else if (isValidVideoType(mimeType)) {
+      // Video: use client-provided thumbnail (already uploaded by client)
+      thumbnailPath = thumbnailGcsPath || null;
+    }
 
     // Save to database
     const photo = await prisma.photo.create({

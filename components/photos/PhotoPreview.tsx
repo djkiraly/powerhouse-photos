@@ -48,6 +48,7 @@ type Photo = {
   gcsPath: string;
   thumbnailPath: string | null;
   originalName: string;
+  mimeType?: string;
   uploadedAt: string;
   uploader: {
     name: string;
@@ -264,12 +265,19 @@ export function PhotoPreview({ photo, onClose, onDelete, onTagsChange, isAdmin =
         </Button>
       </div>
 
-      {/* Image */}
+      {/* Image / Video */}
       <div className="flex-1 relative bg-gray-100 min-h-[300px]">
         {imageError ? (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-gray-500">Failed to load image</span>
+            <span className="text-gray-500">Failed to load media</span>
           </div>
+        ) : photo.mimeType?.startsWith('video/') ? (
+          <video
+            src={fullImageUrl}
+            controls
+            className="w-full h-full object-contain"
+            preload="metadata"
+          />
         ) : (
           <Image
             src={fullImageUrl}
